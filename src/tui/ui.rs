@@ -5,7 +5,8 @@ use ratatui::{
     text::Line,
     widgets::{Block, List, ListDirection, ListState, Padding, Paragraph},
 };
-use rust_fuzzy_search::fuzzy_search;
+use rust_fuzzy_search::fuzzy_search_threshold;
+use tracing::{debug, instrument};
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
 
@@ -47,16 +48,24 @@ impl Tui {
         Ok(())
     }
 
+    #[instrument(fields(s=s),skip(self))]
     fn handle_search(&mut self, s: String) -> Result<()> {
-        let res = fuzzy_search(
-            &s,
-            &self.cmds.iter().map(String::as_ref).collect::<Vec<&str>>(),
-        )
-        .iter()
-        .map(|i| i.0.to_string())
-        .collect::<Vec<String>>();
+        debug!("searching");
+        if s.len() > 0 {
+            let threshold: f32 = 0.1f32;
+            let res = fuzzy_search_threshold(
+                &s,
+                &self.cmds.iter().map(String::as_ref).collect::<Vec<&str>>(),
+                threshold,
+            )
+            .iter()
+            .map(|i| i.0.to_string())
+            .collect::<Vec<String>>();
 
-        self.filtered_cmds = res;
+            self.filtered_cmds = res;
+        } else {
+            self.filtered_cmds = [].to_vec()
+        }
         Ok(())
     }
 
@@ -112,7 +121,13 @@ impl Widget for &Tui {
 
         {
             let mut state = ListState::default();
-            let list = List::new(self.filtered_cmds.clone())
+            let results = if self.search.to_string().is_empty() {
+                self.cmds.clone()
+            } else {
+                self.filtered_cmds.clone()
+            };
+
+            let list = List::new(results)
                 .block(Block::bordered().title("List"))
                 .style(Style::new().white())
                 .highlight_style(Style::new().italic())
