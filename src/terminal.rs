@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::{env, process::Command};
 use strum_macros::Display;
 
-use crate::error::HResult;
+use crate::error::Result;
 
 /// Enum representing different types of terminal multiplexers
 
@@ -29,7 +29,7 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn new() -> HResult<Self> {
+    pub fn new() -> Result<Self> {
         let is_tmux = env::var("TMUX").is_ok();
         let pwd: PathBuf = env::current_dir()?;
 

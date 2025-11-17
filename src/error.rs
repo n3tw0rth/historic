@@ -9,4 +9,4 @@ pub enum HistoricError {
     Unknown,
 }
 
-pub type HResult<T> = Result<T, HistoricError>;
+pub type Result<T> = std::result::Result<T, HistoricError>;
