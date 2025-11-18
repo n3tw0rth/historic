@@ -10,22 +10,6 @@ pub async fn main() -> Result<()> {
     let terminal = Terminal::new()?;
     let db = Db::new().await?;
 
-    db.execute(
-        "CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL
-    )",
-        ("",),
-    )
-    .await?;
-
-    db.execute("INSERT INTO users (username) VALUES (?)", ("alice",))
-        .await?;
-    db.execute("INSERT INTO users (username) VALUES (?)", ("bob",))
-        .await?;
-
-    db.query("SELECT * FROM users", ("",)).await?;
-
     println!(
         "current terminal, {} {}",
         terminal.multiplexer, terminal.session

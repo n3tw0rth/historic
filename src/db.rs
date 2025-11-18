@@ -1,3 +1,7 @@
+use std::env;
+
+use crate::error::Error;
+
 use super::error::Result;
 use turso::{Builder, Connection, Rows};
 
@@ -6,8 +10,23 @@ pub struct Db {
 }
 
 impl Db {
+    /// Create a new instance of the database
     pub async fn new() -> Result<Self> {
-        let db = Builder::new_local("historic.db").build().await?;
+        let mut path = dirs::config_dir().ok_or(Error::Unknown {
+            msg: "Failed to find the config path".to_string(),
+        })?;
+        path.push(env!("CARGO_PKG_NAME"));
+        path.push("historic.db");
+
+        if !tokio::fs::try_exists(&path).await? {
+            tokio::fs::create_dir(&path.parent().unwrap_or(&path)).await?;
+        };
+
+        let path_str = path.to_str().ok_or(Error::Unknown {
+            msg: "Failed to get the config path".to_string(),
+        })?;
+
+        let db = Builder::new_local(path_str).build().await?;
         let conn = db.connect()?;
         Ok(Self { conn })
     }
