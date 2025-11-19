@@ -3,7 +3,7 @@ use std::env;
 use crate::error::Error;
 
 use super::error::Result;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, TimeDelta};
 use turso::{Builder, Connection, Rows};
 
 pub struct Db {
@@ -65,27 +65,16 @@ impl Db {
     }
 
     pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
-        self.conn
-            .execute(
-                "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
-                (Local::now().to_rfc3339(), session_id.clone(), 0, new_cmd),
-            )
-            .await?;
-
         let mut rows = self
             .conn
             .query(
                 "SELECT id, timestamp, session_id, rank, cmd FROM ranks WHERE session_id = ?",
-                (session_id,),
+                (session_id.clone(),),
             )
             .await?;
         let mut vec = Vec::new();
         while let Some(row) = rows.next().await? {
             vec.push(row);
-            // Update row
-            // self.conn
-            //     .execute("UPDATE ranks SET rank = ? WHERE id = ?", (new_rank, id))
-            //     .await?;
         }
 
         for row in vec {
@@ -101,12 +90,20 @@ impl Db {
 
             let age_secs = (Local::now() - ts).num_seconds();
 
+            // NOTE: dummy rank calculation
             let new_rank = rank + (100 - age_secs.max(0)) as i64;
 
-            // TODO: implement the update
+            self.conn
+                .execute("UPDATE ranks set rank=? where id=?", (new_rank, id))
+                .await?;
         }
 
-        // TODO: implement adding the new entry with higher ranking
+        self.conn
+            .execute(
+                "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
+                (Local::now().to_rfc3339(), session_id, 0, new_cmd),
+            )
+            .await?;
 
         Ok(())
     }
