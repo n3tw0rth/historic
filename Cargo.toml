@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.42"
 clap = { version = "4.5.51", features = ["derive"] }
 dirs = "6.0.0"
+md5 = "0.8.0"
 strum = "0.27.2"
 strum_macros = "0.27.2"
 thiserror = "2.0.17"

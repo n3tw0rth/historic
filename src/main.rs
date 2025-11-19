@@ -1,5 +1,5 @@
 use clap::Parser;
-use historic::cmd::{Cli, Commands};
+use historic::cmd::{Cli, Cmd};
 use historic::db::Db;
 use historic::error::Result;
 use historic::terminal::Terminal;
@@ -9,18 +9,15 @@ pub async fn main() -> Result<()> {
     let args = Cli::parse();
     let terminal = Terminal::new()?;
     let db = Db::new().await?;
-
-    println!(
-        "current terminal, {} {}",
-        terminal.multiplexer, terminal.session
-    );
+    let cmd = Cmd::new(&args.command, terminal, db).await;
 
     match args.command {
-        Some(Commands::Add { cmd: _ }) => {
-            println!("Handle adding records");
-        }
         None => {
             println!("Run the tui");
+        }
+        _ => {
+            cmd.run().await?;
+            println!("Handle adding records");
         }
     }
 

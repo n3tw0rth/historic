@@ -3,6 +3,7 @@ use std::env;
 use crate::error::Error;
 
 use super::error::Result;
+use chrono::{DateTime, Local};
 use turso::{Builder, Connection, Rows};
 
 pub struct Db {
@@ -18,8 +19,9 @@ impl Db {
         path.push(env!("CARGO_PKG_NAME"));
         path.push("historic.db");
 
-        if !tokio::fs::try_exists(&path).await? {
-            tokio::fs::create_dir(&path.parent().unwrap_or(&path)).await?;
+        let parent_path = &path.parent().unwrap_or(&path);
+        if !tokio::fs::try_exists(parent_path).await? {
+            tokio::fs::create_dir(parent_path).await?;
         };
 
         let path_str = path.to_str().ok_or(Error::Unknown {
@@ -28,6 +30,19 @@ impl Db {
 
         let db = Builder::new_local(path_str).build().await?;
         let conn = db.connect()?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS ranks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    rank INTEGER NOT NULL,
+    cmd TEXT NOT NULL
+)",
+            (),
+        )
+        .await?;
+
         Ok(Self { conn })
     }
 
@@ -47,5 +62,52 @@ impl Db {
     {
         let rows = self.conn.query(sql, params).await?;
         Ok(rows)
+    }
+
+    pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
+        self.conn
+            .execute(
+                "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
+                (Local::now().to_rfc3339(), session_id.clone(), 0, new_cmd),
+            )
+            .await?;
+
+        let mut rows = self
+            .conn
+            .query(
+                "SELECT id, timestamp, session_id, rank, cmd FROM ranks WHERE session_id = ?",
+                (session_id,),
+            )
+            .await?;
+        let mut vec = Vec::new();
+        while let Some(row) = rows.next().await? {
+            vec.push(row);
+            // Update row
+            // self.conn
+            //     .execute("UPDATE ranks SET rank = ? WHERE id = ?", (new_rank, id))
+            //     .await?;
+        }
+
+        for row in vec {
+            let id: i64 = row.get(0)?;
+            let ts_str: String = row.get(1)?;
+            let rank: i64 = row.get(3)?;
+
+            let ts: DateTime<Local> = DateTime::parse_from_rfc3339(&ts_str)
+                .map_err(|_| Error::Unknown {
+                    msg: "Error converting the time".to_string(),
+                })
+                .map(|dt| dt.with_timezone(&Local))?;
+
+            let age_secs = (Local::now() - ts).num_seconds();
+
+            let new_rank = rank + (100 - age_secs.max(0)) as i64;
+
+            // TODO: implement the update
+        }
+
+        // TODO: implement adding the new entry with higher ranking
+
+        Ok(())
     }
 }

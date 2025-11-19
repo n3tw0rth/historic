@@ -1,4 +1,3 @@
-use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::{env, process::Command};
 use strum_macros::Display;
@@ -18,7 +17,7 @@ pub enum TerminalMultiplexerType {
     NONE,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Terminal {
     pub multiplexer: TerminalMultiplexerType,
     pub session: String,
@@ -34,24 +33,15 @@ impl Terminal {
         let pwd: PathBuf = env::current_dir()?;
 
         if is_tmux {
-            let tmux_result = Command::new("tmux")
+            let output = Command::new("tmux")
                 .arg("display-message")
                 .arg("-p")
                 .arg("-F")
                 .arg("#{session_name} #{window_index} #{pane_index}")
-                .spawn()
-                .expect("failed to run tmux")
-                .stdout;
+                .output()?;
 
-            let output = tmux_result.map_or(String::new(), |r| {
-                let mut s = String::new();
-                BufReader::new(r)
-                    .read_to_string(&mut s)
-                    .expect("read failed");
-                s
-            });
-
-            let mut iter = output.split(' ');
+            let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let mut iter = result.split(' ');
 
             let session = iter.next().unwrap_or("").to_string();
             let window = iter.next().unwrap_or("").parse::<u8>().unwrap_or_default();
@@ -64,9 +54,9 @@ impl Terminal {
                 pane,
                 pwd,
             });
+        } else {
+            return Ok(Terminal::default());
         }
-
-        Ok(Terminal::default())
     }
 }
 
