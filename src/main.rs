@@ -1,8 +1,10 @@
 use clap::Parser;
+use color_eyre::Result;
+
 use historic::cmd::{Cli, Cmd};
 use historic::db::Db;
-use historic::error::Result;
 use historic::terminal::Terminal;
+use historic::tui::ui::Tui;
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
@@ -13,11 +15,14 @@ pub async fn main() -> Result<()> {
 
     match args.command {
         None => {
-            println!("Run the tui");
+            color_eyre::install()?;
+            let terminal = ratatui::init();
+            let result = Tui::new().run(terminal);
+            ratatui::restore();
+            result?;
         }
         _ => {
             cmd.run().await?;
-            println!("Handle adding records");
         }
     }
 

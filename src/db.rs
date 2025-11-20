@@ -3,7 +3,7 @@ use std::env;
 use crate::error::Error;
 
 use super::error::Result;
-use chrono::{DateTime, Local, TimeDelta};
+use chrono::{DateTime, Local};
 use turso::{Builder, Connection, Rows};
 
 pub struct Db {
