@@ -64,14 +64,19 @@ impl Db {
         Ok(rows)
     }
 
-    pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
-        let mut rows = self
+    pub async fn get_commands(&self, session_id: &String) -> Result<Rows> {
+        let rows = self
             .conn
             .query(
                 "SELECT id, timestamp, session_id, rank, cmd FROM ranks WHERE session_id = ?",
                 (session_id.clone(),),
             )
             .await?;
+        Ok(rows)
+    }
+
+    pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
+        let mut rows = self.get_commands(&session_id).await?;
         let mut vec = Vec::new();
         while let Some(row) = rows.next().await? {
             vec.push(row);

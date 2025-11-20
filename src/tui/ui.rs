@@ -1,16 +1,41 @@
+use std::sync::Arc;
+
 use color_eyre::Result;
 use crossterm::event::{self, Event};
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
 
-pub struct Tui {}
+use crate::db::Db;
+use crate::terminal::Terminal;
+use crate::utils;
+
+pub struct Tui {
+    term: Arc<Terminal>,
+    db: Arc<Db>,
+    cmds: Vec<String>,
+}
 
 impl Tui {
-    pub fn new() -> Self {
-        Tui {}
+    pub fn new(term: Arc<Terminal>, db: Arc<Db>) -> Self {
+        Tui {
+            term,
+            db,
+            cmds: vec!["test".to_string(), "pnpm install".to_string()],
+        }
     }
 
-    pub fn run(&self, mut term: DefaultTerminal) -> Result<()> {
+    pub async fn run(&mut self, mut term: DefaultTerminal) -> Result<()> {
+        let session_id = utils::string_to_md5(&format!("{:?} ", self.term));
+        let mut rows = self.db.get_commands(&session_id).await?;
+
+        let mut items = Vec::new();
+        while let Some(row) = rows.next().await? {
+            let r: String = row.get(4)?;
+            items.push(r);
+        }
+
+        self.cmds = items;
+
         loop {
             term.draw(|frame| self.render(frame))?;
             if matches!(event::read()?, Event::Key(_)) {
@@ -37,9 +62,17 @@ impl Widget for &Tui {
                 .block(Block::bordered())
                 .render(layout[0], buf);
         }
-
         {
-            Block::bordered().render(layout[1], buf);
+            let mut state = ListState::default();
+            let list = List::new(self.cmds.clone())
+                .block(Block::bordered().title("List"))
+                .style(Style::new().white())
+                .highlight_style(Style::new().italic())
+                .highlight_symbol(">>")
+                .repeat_highlight_symbol(true)
+                .direction(ListDirection::BottomToTop);
+
+            StatefulWidget::render(list, layout[1], buf, &mut state);
         }
     }
 }

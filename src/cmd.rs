@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::db::Db;
 use crate::error::Result;
 use crate::terminal::Terminal;
@@ -22,12 +24,12 @@ pub enum Commands {
 
 pub struct Cmd<'a> {
     commands: &'a Option<Commands>,
-    term: Terminal,
-    db: Db,
+    term: Arc<Terminal>,
+    db: Arc<Db>,
 }
 
 impl<'a> Cmd<'a> {
-    pub async fn new(args: &'a Option<Commands>, term: Terminal, db: Db) -> Self {
+    pub async fn new(args: &'a Option<Commands>, term: Arc<Terminal>, db: Arc<Db>) -> Self {
         Cmd {
             commands: args,
             term,
@@ -43,8 +45,7 @@ impl<'a> Cmd<'a> {
     }
 
     async fn handle_add(&self, cmd: &Vec<String>) -> Result<()> {
-        let term_debug = format!("{:?} ", self.term);
-        let session_id = utils::string_to_md5(&term_debug);
+        let session_id = utils::string_to_md5(&format!("{:?} ", self.term));
         let joined_cmd = cmd.join(" ");
         self.db.rank_n_save_new(session_id, joined_cmd).await?;
         Ok(())
