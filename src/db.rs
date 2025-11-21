@@ -64,12 +64,12 @@ impl Db {
         Ok(rows)
     }
 
-    pub async fn get_commands(&self, session_id: &String) -> Result<Rows> {
+    pub async fn get_commands(&self, session_id: &str) -> Result<Rows> {
         let rows = self
             .conn
             .query(
                 "SELECT id, timestamp, session_id, rank, cmd FROM ranks WHERE session_id = ?",
-                (session_id.clone(),),
+                (session_id,),
             )
             .await?;
         Ok(rows)
@@ -96,7 +96,7 @@ impl Db {
             let age_secs = (Local::now() - ts).num_seconds();
 
             // NOTE: dummy rank calculation
-            let new_rank = rank + (100 - age_secs.max(0)) as i64;
+            let new_rank = rank + (100 - age_secs.max(0));
 
             self.conn
                 .execute("UPDATE ranks set rank=? where id=?", (new_rank, id))

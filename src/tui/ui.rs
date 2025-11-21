@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use color_eyre::Result;
-use crossterm::event::{self, Event};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
 
@@ -13,6 +13,7 @@ pub struct Tui {
     term: Arc<Terminal>,
     db: Arc<Db>,
     cmds: Vec<String>,
+    exit: bool,
 }
 
 impl Tui {
@@ -21,6 +22,7 @@ impl Tui {
             term,
             db,
             cmds: vec!["test".to_string(), "pnpm install".to_string()],
+            exit: false,
         }
     }
 
@@ -35,14 +37,32 @@ impl Tui {
         }
 
         self.cmds = items;
-
-        loop {
+        while !self.exit {
             term.draw(|frame| self.render(frame))?;
-            if matches!(event::read()?, Event::Key(_)) {
-                break ();
-            }
+            self.handle_events()?;
         }
         Ok(())
+    }
+
+    fn handle_events(&mut self) -> Result<()> {
+        match event::read()? {
+            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                self.handle_key_event(key_event)
+            }
+            _ => {}
+        };
+        Ok(())
+    }
+
+    fn handle_key_event(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Char('q') => self.exit(),
+            _ => {}
+        }
+    }
+
+    fn exit(&mut self) {
+        self.exit = true;
     }
 
     fn render(&self, frame: &mut Frame) {

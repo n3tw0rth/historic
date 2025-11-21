@@ -47,15 +47,15 @@ impl Terminal {
             let window = iter.next().unwrap_or("").parse::<u8>().unwrap_or_default();
             let pane = iter.next().unwrap_or("").parse::<u8>().unwrap_or_default();
 
-            return Ok(Terminal {
+            Ok(Terminal {
                 multiplexer: TerminalMultiplexerType::TMUX,
                 session,
                 window,
                 pane,
                 pwd,
-            });
+            })
         } else {
-            return Ok(Terminal::default());
+            Ok(Terminal::default())
         }
     }
 }

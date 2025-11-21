@@ -1,4 +1,4 @@
-pub fn string_to_md5(strings: &String) -> String {
+pub fn string_to_md5(strings: &str) -> String {
     let cleaned_str = strings.replace(" ", "");
     let digest = md5::compute(&cleaned_str);
     format!("{:x}", digest)

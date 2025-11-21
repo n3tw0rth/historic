@@ -44,7 +44,7 @@ impl<'a> Cmd<'a> {
         }
     }
 
-    async fn handle_add(&self, cmd: &Vec<String>) -> Result<()> {
+    async fn handle_add(&self, cmd: &[String]) -> Result<()> {
         let session_id = utils::string_to_md5(&format!("{:?} ", self.term));
         let joined_cmd = cmd.join(" ");
         self.db.rank_n_save_new(session_id, joined_cmd).await?;
