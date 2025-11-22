@@ -1,33 +1,36 @@
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use crossterm::event::{self, Event as CrosstermEvent, KeyCode, KeyEvent};
 use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
+
+use super::event::{Event, EventHandler};
 
 pub struct Tui {
     cmds: Vec<String>,
     exit: bool,
+    events: EventHandler,
 }
 
 impl Tui {
-    pub fn new() -> Self {
+    pub fn new(events: EventHandler) -> Self {
         Tui {
             cmds: Vec::new(),
             exit: false,
+            events,
         }
     }
 
-    pub fn run(&mut self, mut term: DefaultTerminal, cmds: Vec<String>) -> Result<()> {
+    pub async fn run(&mut self, mut term: DefaultTerminal, cmds: Vec<String>) -> Result<()> {
         self.cmds = cmds;
         while !self.exit {
             term.draw(|frame| self.render(frame))?;
-            self.handle_events()?;
-        }
-        Ok(())
-    }
 
-    fn handle_events(&mut self) -> Result<()> {
-        if let Event::Key(key) = event::read()? {
-            self.handle_key_event(key);
+            match self.events.next().await? {
+                Event::Key(key_event) => self.handle_key_event(key_event),
+                _ => {
+                    println!("not a valid event")
+                }
+            }
         }
         Ok(())
     }
@@ -72,5 +75,11 @@ impl Widget for &Tui {
 
             StatefulWidget::render(list, layout[1], buf, &mut state);
         }
+    }
+}
+
+impl Drop for Tui {
+    fn drop(&mut self) {
+        self.exit();
     }
 }

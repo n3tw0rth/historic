@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(about = "A CLI to remember commands you run")]
-pub struct Cli {
+pub struct Args {
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
