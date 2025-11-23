@@ -13,6 +13,7 @@ pub enum Event {
     Key(KeyEvent),
 }
 
+#[allow(dead_code)]
 pub struct EventHandler {
     pub sender: mpsc::Sender<Event>,
     receiver: mpsc::Receiver<Event>,
@@ -52,5 +53,11 @@ impl EventHandler {
         self.receiver
             .recv()
             .map_err(|e| Error::Unknown { msg: e.to_string() })
+    }
+}
+
+impl Default for EventHandler {
+    fn default() -> Self {
+        Self::new()
     }
 }

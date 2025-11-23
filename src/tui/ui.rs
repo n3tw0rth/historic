@@ -1,9 +1,9 @@
-use color_eyre::Result;
-use crossterm::event::{self, Event as CrosstermEvent, KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
 
 use super::event::{Event, EventHandler};
+use crate::Result;
 
 pub struct Tui {
     cmds: Vec<String>,
@@ -38,6 +38,10 @@ impl Tui {
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
+            KeyCode::Char('s') => {
+                // TODO: check the current mode and let the user to search on the records
+                todo!()
+            }
             _ => {}
         }
     }
