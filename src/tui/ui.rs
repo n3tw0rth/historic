@@ -2,22 +2,42 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
 
-use super::event::{Event, EventHandler};
-use crate::Result;
+use crate::{Event, EventHandler, Result};
 
+#[derive(Default, PartialEq)]
+pub enum Mode {
+    Search,
+    #[default]
+    Normal,
+}
+
+#[derive(Default, Clone)]
+struct Input {
+    pub val: String,
+}
+
+impl Input {
+    pub fn put(&mut self, char: String) {
+        self.val.push_str(&char);
+    }
+
+    pub fn delete(&mut self) {
+        self.val.truncate(self.val.len() - 1);
+    }
+}
+
+#[derive(Default)]
 pub struct Tui {
     cmds: Vec<String>,
     exit: bool,
     events: EventHandler,
+    mode: Mode,
+    search: Input,
 }
 
 impl Tui {
-    pub fn new(events: EventHandler) -> Self {
-        Tui {
-            cmds: Vec::new(),
-            exit: false,
-            events,
-        }
+    pub fn new() -> Self {
+        Tui::default()
     }
 
     pub async fn run(&mut self, mut term: DefaultTerminal, cmds: Vec<String>) -> Result<()> {
@@ -27,6 +47,7 @@ impl Tui {
 
             match self.events.next().await? {
                 Event::Key(key_event) => self.handle_key_event(key_event),
+                Event::Search => self.handle_search(),
                 _ => {
                     println!("not a valid event")
                 }
@@ -35,14 +56,35 @@ impl Tui {
         Ok(())
     }
 
+    fn handle_search(&self) {}
+
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            KeyCode::Char('s') => {
-                // TODO: check the current mode and let the user to search on the records
-                todo!()
+        if self.mode == Mode::Search {
+            match key_event.code {
+                KeyCode::Enter => {
+                    self.events
+                        .sender
+                        .send(Event::Search)
+                        .expect("failed to send the search event");
+                }
+                KeyCode::Backspace => {
+                    self.search.delete();
+                }
+                KeyCode::Esc => self.mode = Mode::Normal,
+                KeyCode::Char(c) => {
+                    self.search.put(c.to_string());
+                }
+                _ => {}
             }
-            _ => {}
+        } else {
+            match key_event.code {
+                KeyCode::Char('q') => self.exit(),
+                KeyCode::Char('s') => match self.mode {
+                    Mode::Normal => self.mode = Mode::Search,
+                    Mode::Search => {}
+                },
+                _ => {}
+            }
         }
     }
 
@@ -63,7 +105,7 @@ impl Widget for &Tui {
             .split(area);
 
         {
-            Paragraph::new("Search the command")
+            Paragraph::new(self.search.val.clone())
                 .block(Block::bordered())
                 .render(layout[0], buf);
         }

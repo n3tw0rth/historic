@@ -3,7 +3,7 @@ use std::sync::Arc;
 use self::db::Db;
 use self::error::{Error, Result};
 use self::terminal::Terminal;
-use self::tui::event::EventHandler;
+use self::tui::event::{Event, EventHandler};
 use self::tui::ui::Tui;
 
 pub mod cmd;
@@ -17,8 +17,7 @@ pub mod tui {
 }
 
 pub async fn start_tui(term: Arc<Terminal>, db: Arc<Db>) -> Result<()> {
-    let events = EventHandler::new();
-    let mut tui = Tui::new(events);
+    let mut tui = Tui::new();
 
     let session_id = utils::string_to_md5(&format!("{:?} ", term));
     let mut rows = db.get_commands(&session_id).await?;

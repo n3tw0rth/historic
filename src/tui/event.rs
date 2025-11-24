@@ -11,6 +11,7 @@ pub enum Event {
     Init,
     Quit,
     Key(KeyEvent),
+    Search,
 }
 
 #[allow(dead_code)]
@@ -49,6 +50,7 @@ impl EventHandler {
             running,
         }
     }
+
     pub async fn next(&mut self) -> Result<Event> {
         self.receiver
             .recv()
