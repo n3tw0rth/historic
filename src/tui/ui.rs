@@ -1,5 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
+use ratatui::widgets::{Block, List, ListDirection, ListState, Padding, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
@@ -90,8 +90,10 @@ impl Widget for &Tui {
             .split(area);
 
         {
-            Paragraph::new(self.search.val.clone())
-                .block(Block::bordered())
+            let s = self.search.val.as_str();
+            let display = if s.is_empty() { "Search..." } else { s };
+            Paragraph::new(display)
+                .block(Block::bordered().padding(Padding::left(1)))
                 .render(layout[0], buf);
         }
         {
