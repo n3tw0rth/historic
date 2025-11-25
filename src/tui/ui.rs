@@ -2,28 +2,13 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::{Block, List, ListDirection, ListState, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
 
-use crate::{Event, EventHandler, Result};
+use crate::{Event, EventHandler, Result, tui::input::Input};
 
 #[derive(Default, PartialEq)]
 pub enum Mode {
     Search,
     #[default]
     Normal,
-}
-
-#[derive(Default, Clone)]
-struct Input {
-    pub val: String,
-}
-
-impl Input {
-    pub fn put(&mut self, char: String) {
-        self.val.push_str(&char);
-    }
-
-    pub fn delete(&mut self) {
-        self.val.truncate(self.val.len() - 1);
-    }
 }
 
 #[derive(Default)]

@@ -10,11 +10,8 @@ pub mod cmd;
 pub mod db;
 pub mod error;
 pub mod terminal;
+pub mod tui;
 pub mod utils;
-pub mod tui {
-    pub mod event;
-    pub mod ui;
-}
 
 pub async fn start_tui(term: Arc<Terminal>, db: Arc<Db>) -> Result<()> {
     let mut tui = Tui::new();
