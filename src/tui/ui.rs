@@ -5,6 +5,7 @@ use ratatui::{
     text::Line,
     widgets::{Block, List, ListDirection, ListState, Padding, Paragraph},
 };
+use rust_fuzzy_search::fuzzy_search;
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
 
@@ -18,6 +19,7 @@ pub enum Mode {
 #[derive(Default)]
 pub struct Tui {
     cmds: Vec<String>,
+    filtered_cmds: Vec<String>,
     exit: bool,
     events: EventHandler,
     mode: Mode,
@@ -35,8 +37,8 @@ impl Tui {
             term.draw(|frame| self.render(frame))?;
 
             match self.events.next().await? {
-                Event::Key(key_event) => self.handle_key_event(key_event),
-                Event::Search => self.handle_search(),
+                Event::Key(key_event) => self.handle_key_event(key_event)?,
+                Event::Search(s) => self.handle_search(s)?,
                 _ => {
                     println!("not a valid event")
                 }
@@ -45,23 +47,32 @@ impl Tui {
         Ok(())
     }
 
-    fn handle_search(&self) {}
+    fn handle_search(&mut self, s: String) -> Result<()> {
+        let res = fuzzy_search(
+            &s,
+            &self.cmds.iter().map(String::as_ref).collect::<Vec<&str>>(),
+        )
+        .iter()
+        .map(|i| i.0.to_string())
+        .collect::<Vec<String>>();
 
-    fn handle_key_event(&mut self, key_event: KeyEvent) {
+        self.filtered_cmds = res;
+        Ok(())
+    }
+
+    fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
         if self.mode == Mode::Insert {
             match key_event.code {
-                KeyCode::Enter => {
-                    self.events
-                        .sender
-                        .send(Event::Search)
-                        .expect("failed to send the search event");
-                }
                 KeyCode::Backspace => {
                     self.search.delete();
                 }
                 KeyCode::Esc => self.mode = Mode::Normal,
                 KeyCode::Char(c) => {
                     self.search.put(c.to_string());
+                    self.events
+                        .sender
+                        .send(Event::Search(self.search.to_string()))
+                        .expect("failed to send the search event");
                 }
                 _ => {}
             }
@@ -75,6 +86,8 @@ impl Tui {
                 _ => {}
             }
         }
+
+        Ok(())
     }
 
     fn exit(&mut self) {
@@ -99,7 +112,7 @@ impl Widget for &Tui {
 
         {
             let mut state = ListState::default();
-            let list = List::new(self.cmds.clone())
+            let list = List::new(self.filtered_cmds.clone())
                 .block(Block::bordered().title("List"))
                 .style(Style::new().white())
                 .highlight_style(Style::new().italic())
@@ -111,7 +124,7 @@ impl Widget for &Tui {
         }
 
         {
-            let s = self.search.val.as_str();
+            let s = &self.search.to_string();
             let display = if s.is_empty() { "Search..." } else { s };
             Paragraph::new(display)
                 .block(Block::bordered().padding(Padding::left(1)))

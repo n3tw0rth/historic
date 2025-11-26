@@ -1,6 +1,6 @@
 #[derive(Default, Clone)]
 pub struct Input {
-    pub val: String,
+    val: String,
 }
 
 impl Input {
@@ -10,5 +10,11 @@ impl Input {
 
     pub fn delete(&mut self) {
         self.val.truncate(self.val.len().saturating_sub(1));
+    }
+}
+
+impl ToString for Input {
+    fn to_string(&self) -> String {
+        self.val.to_string()
     }
 }

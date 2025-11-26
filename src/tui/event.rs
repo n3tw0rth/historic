@@ -11,7 +11,7 @@ pub enum Event {
     Init,
     Quit,
     Key(KeyEvent),
-    Search,
+    Search(String),
 }
 
 #[allow(dead_code)]
