@@ -9,6 +9,6 @@ impl Input {
     }
 
     pub fn delete(&mut self) {
-        self.val.truncate(self.val.len() - 1);
+        self.val.truncate(self.val.len().saturating_sub(1));
     }
 }
