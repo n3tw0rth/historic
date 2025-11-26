@@ -1,13 +1,17 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::widgets::{Block, List, ListDirection, ListState, Padding, Paragraph};
 use ratatui::{DefaultTerminal, prelude::*};
+use ratatui::{
+    style::{Style, Stylize},
+    text::Line,
+    widgets::{Block, List, ListDirection, ListState, Padding, Paragraph},
+};
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
 
 #[derive(Default, PartialEq)]
 pub enum Mode {
-    Search,
     #[default]
+    Insert,
     Normal,
 }
 
@@ -44,7 +48,7 @@ impl Tui {
     fn handle_search(&self) {}
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        if self.mode == Mode::Search {
+        if self.mode == Mode::Insert {
             match key_event.code {
                 KeyCode::Enter => {
                     self.events
@@ -64,9 +68,9 @@ impl Tui {
         } else {
             match key_event.code {
                 KeyCode::Char('q') => self.exit(),
-                KeyCode::Char('s') => match self.mode {
-                    Mode::Normal => self.mode = Mode::Search,
-                    Mode::Search => {}
+                KeyCode::Char('i') => match self.mode {
+                    Mode::Normal => self.mode = Mode::Insert,
+                    Mode::Insert => {}
                 },
                 _ => {}
             }
@@ -86,16 +90,13 @@ impl Widget for &Tui {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Length(3), Constraint::Min(50)])
+            .constraints(vec![
+                Constraint::Min(50),
+                Constraint::Length(3),
+                Constraint::Length(1),
+            ])
             .split(area);
 
-        {
-            let s = self.search.val.as_str();
-            let display = if s.is_empty() { "Search..." } else { s };
-            Paragraph::new(display)
-                .block(Block::bordered().padding(Padding::left(1)))
-                .render(layout[0], buf);
-        }
         {
             let mut state = ListState::default();
             let list = List::new(self.cmds.clone())
@@ -106,7 +107,36 @@ impl Widget for &Tui {
                 .repeat_highlight_symbol(true)
                 .direction(ListDirection::BottomToTop);
 
-            StatefulWidget::render(list, layout[1], buf, &mut state);
+            StatefulWidget::render(list, layout[0], buf, &mut state);
+        }
+
+        {
+            let s = self.search.val.as_str();
+            let display = if s.is_empty() { "Search..." } else { s };
+            Paragraph::new(display)
+                .block(Block::bordered().padding(Padding::left(1)))
+                .render(layout[1], buf);
+        }
+
+        {
+            let seperator = " | ".gray();
+            let lines = if self.mode.eq(&Mode::Normal) {
+                vec![
+                    "Exit: ".blue(),
+                    "q".into(),
+                    seperator,
+                    "Search: ".blue(),
+                    "i".into(),
+                ]
+            } else {
+                vec!["Cancel: ".blue(), "Esc".into()]
+            };
+
+            let help_text = Line::from(lines);
+
+            Paragraph::new(help_text)
+                .alignment(Alignment::Center)
+                .render(layout[2], buf);
         }
     }
 }
