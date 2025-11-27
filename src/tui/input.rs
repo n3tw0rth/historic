@@ -1,4 +1,4 @@
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Input {
     val: String,
 }

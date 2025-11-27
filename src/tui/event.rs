@@ -15,6 +15,7 @@ pub enum Event {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct EventHandler {
     pub sender: mpsc::Sender<Event>,
     receiver: mpsc::Receiver<Event>,

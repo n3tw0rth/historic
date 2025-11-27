@@ -1,13 +1,20 @@
 use clap::Parser;
 use color_eyre::Result;
 use std::sync::Arc;
+use tracing::info;
 
-use historic::cmd::{Args, Cmd};
-use historic::db::Db;
-use historic::terminal::Terminal;
+use historic::{
+    cmd::{Args, Cmd},
+    db::Db,
+    terminal::Terminal,
+    tracing::Tracing,
+};
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
+    Tracing::new()?;
+    info!("application started");
+
     let args = Args::parse();
     let terminal = Arc::new(Terminal::new()?);
     let db = Arc::new(Db::new().await?);

@@ -6,17 +6,18 @@ use ratatui::{
     widgets::{Block, List, ListDirection, ListState, Padding, Paragraph},
 };
 use rust_fuzzy_search::fuzzy_search;
+use tracing::instrument;
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
 
-#[derive(Default, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub enum Mode {
     #[default]
     Insert,
     Normal,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Tui {
     cmds: Vec<String>,
     filtered_cmds: Vec<String>,
@@ -47,6 +48,7 @@ impl Tui {
         Ok(())
     }
 
+    #[instrument]
     fn handle_search(&mut self, s: String) -> Result<()> {
         let res = fuzzy_search(
             &s,
