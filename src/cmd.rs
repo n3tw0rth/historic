@@ -5,6 +5,7 @@ use crate::error::Result;
 use crate::terminal::Terminal;
 use crate::utils;
 use clap::{Parser, Subcommand};
+use tracing::{instrument,info};
 
 #[derive(Debug, Parser)]
 #[command(about = "A CLI to remember commands you run")]
@@ -44,7 +45,9 @@ impl<'a> Cmd<'a> {
         }
     }
 
+    #[instrument(skip(self))]
     async fn handle_add(&self, cmd: &[String]) -> Result<()> {
+        info!("adding command to database: {:?}",cmd);
         let session_id = utils::string_to_md5(&format!("{:?} ", self.term));
         let joined_cmd = cmd.join(" ");
         self.db.rank_n_save_new(session_id, joined_cmd).await?;

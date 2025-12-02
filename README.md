@@ -11,8 +11,19 @@ A CLI tool for remembering and quickly accessing terminal commands across differ
 
 ## Installation
 
+update `.bashrc`
 ```bash
-# no installation instructions for now
+function __historic_hook() {
+    old_cmd="$(history 1 | sed 's/^[ ]*[0-9]\+[ ]*//')"
+    if [[ -n "$old_cmd" && "$old_cmd" != *historic* ]]; then
+      \command historic add "${old_cmd}"
+    fi
+}
+
+# Initialize hook.
+if [[ ${PROMPT_COMMAND:=} != *'__historic_hook'* ]]; then
+    PROMPT_COMMAND="__historic_hook;${PROMPT_COMMAND#;}"
+fi
 ```
 
 ## Usage
