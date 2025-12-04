@@ -69,7 +69,7 @@ impl Db {
         let rows = self
             .conn
             .query(
-                "SELECT id, timestamp, session_id, rank, cmd FROM ranks WHERE session_id = ?",
+                "SELECT id, timestamp, session_id, rank, cmd FROM ranks WHERE session_id = ? ORDER BY rank ASC",
                 (session_id,),
             )
             .await?;
@@ -78,6 +78,7 @@ impl Db {
 
     pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
         let mut is_new_record = true;
+        let mut current_max_rank = 1;
         let mut rows = self.get_commands(&session_id).await?;
         let mut vec = Vec::new();
         while let Some(row) = rows.next().await? {
@@ -90,8 +91,8 @@ impl Db {
             let rank: i64 = row.get(3)?;
             let cmd: String = row.get(4)?;
 
-            if cmd.eq(&new_cmd) {
-                is_new_record = false
+            if rank > current_max_rank {
+                current_max_rank = rank
             }
 
             let ts: DateTime<Local> = DateTime::parse_from_rfc3339(&ts_str)
@@ -105,26 +106,35 @@ impl Db {
 
             let mut new_rank = rank;
 
-            if age_hours < 1 {
-                new_rank = rank * 4
-            } else if age_hours < 24 {
-                new_rank = rank * 2
-            } else if age_hours < 24 * 7 {
-                new_rank = rank / 2
-            } else {
-                new_rank = rank / 4
-            }
+            if cmd.eq(&new_cmd) {
+                is_new_record = false;
 
-            self.conn
-                .execute("UPDATE ranks set rank=? where id=?", (new_rank, id))
-                .await?;
+                if age_hours < 1 {
+                    new_rank = rank * 2
+                } else if age_hours < 24 {
+                    new_rank = rank
+                } else if age_hours < 24 * 7 {
+                    new_rank = rank / 2
+                } else {
+                    new_rank = rank / 4
+                }
+
+                self.conn
+                    .execute("UPDATE ranks set rank=? where id=?", (new_rank, id))
+                    .await?;
+            }
         }
 
         if is_new_record {
             self.conn
                 .execute(
                     "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
-                    (Local::now().to_rfc3339(), session_id, 0, new_cmd),
+                    (
+                        Local::now().to_rfc3339(),
+                        session_id,
+                        current_max_rank,
+                        new_cmd,
+                    ),
                 )
                 .await?;
         }
