@@ -4,6 +4,7 @@ use crate::error::Error;
 
 use super::error::Result;
 use chrono::{DateTime, Local};
+use tracing::debug;
 use turso::{Builder, Connection, Rows};
 
 pub struct Db {
@@ -76,6 +77,7 @@ impl Db {
     }
 
     pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
+        let mut is_new_record = true;
         let mut rows = self.get_commands(&session_id).await?;
         let mut vec = Vec::new();
         while let Some(row) = rows.next().await? {
@@ -86,6 +88,11 @@ impl Db {
             let id: i64 = row.get(0)?;
             let ts_str: String = row.get(1)?;
             let rank: i64 = row.get(3)?;
+            let cmd: String = row.get(4)?;
+
+            if cmd.eq(&new_cmd) {
+                is_new_record = false
+            }
 
             let ts: DateTime<Local> = DateTime::parse_from_rfc3339(&ts_str)
                 .map_err(|_| Error::Unknown {
@@ -93,22 +100,34 @@ impl Db {
                 })
                 .map(|dt| dt.with_timezone(&Local))?;
 
-            let age_secs = (Local::now() - ts).num_seconds();
+            let age_hours = (Local::now() - ts).num_hours();
+            debug!("Age for the command {}  is {}", cmd, age_hours);
 
-            // NOTE: dummy rank calculation
-            let new_rank = rank + (100 - age_secs.max(0));
+            let mut new_rank = rank;
+
+            if age_hours < 1 {
+                new_rank = rank * 4
+            } else if age_hours < 24 {
+                new_rank = rank * 2
+            } else if age_hours < 24 * 7 {
+                new_rank = rank / 2
+            } else {
+                new_rank = rank / 4
+            }
 
             self.conn
                 .execute("UPDATE ranks set rank=? where id=?", (new_rank, id))
                 .await?;
         }
 
-        self.conn
-            .execute(
-                "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
-                (Local::now().to_rfc3339(), session_id, 0, new_cmd),
-            )
-            .await?;
+        if is_new_record {
+            self.conn
+                .execute(
+                    "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
+                    (Local::now().to_rfc3339(), session_id, 0, new_cmd),
+                )
+                .await?;
+        }
 
         Ok(())
     }
