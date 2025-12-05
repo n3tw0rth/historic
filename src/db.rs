@@ -4,7 +4,6 @@ use crate::error::Error;
 
 use super::error::Result;
 use chrono::{DateTime, Local};
-use tracing::debug;
 use turso::{Builder, Connection, Rows};
 
 pub struct Db {
@@ -77,23 +76,18 @@ impl Db {
     }
 
     pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
-        let mut is_new_record = true;
-        let mut current_max_rank = 1;
-        let mut rows = self.get_commands(&session_id).await?;
-        let mut vec = Vec::new();
-        while let Some(row) = rows.next().await? {
-            vec.push(row);
-        }
+        let mut maybe_row = self
+            .conn
+            .query(
+                "select id, timestamp, rank from ranks where session_id=? and cmd=?",
+                (session_id.clone(), new_cmd.clone()),
+            )
+            .await?;
 
-        for row in vec {
+        if let Some(row) = maybe_row.next().await? {
             let id: i64 = row.get(0)?;
             let ts_str: String = row.get(1)?;
-            let rank: i64 = row.get(3)?;
-            let cmd: String = row.get(4)?;
-
-            if rank > current_max_rank {
-                current_max_rank = rank
-            }
+            let rank: i64 = row.get(2)?;
 
             let ts: DateTime<Local> = DateTime::parse_from_rfc3339(&ts_str)
                 .map_err(|_| Error::Unknown {
@@ -101,44 +95,49 @@ impl Db {
                 })
                 .map(|dt| dt.with_timezone(&Local))?;
 
-            let age_hours = (Local::now() - ts).num_hours();
-            debug!("Age for the command {}  is {}", cmd, age_hours);
+            let new_rank = calculate_rank(rank, ts);
 
-            let mut new_rank = rank;
+            self.conn
+                .execute("update ranks set rank=? where id=?", (new_rank, id))
+                .await?;
+        } else {
+            let max_rank = self
+                .conn
+                .query(
+                    "SELECT MAX(rank) FROM ranks where session_id=?",
+                    (session_id.clone(),),
+                )
+                .await?
+                .next()
+                .await?
+                .iter()
+                .map(|r| r.get(0).unwrap_or(1))
+                .collect::<Vec<i64>>()[0];
 
-            if cmd.eq(&new_cmd) {
-                is_new_record = false;
-
-                if age_hours < 1 {
-                    new_rank = rank * 2
-                } else if age_hours < 24 {
-                    new_rank = rank
-                } else if age_hours < 24 * 7 {
-                    new_rank = rank / 2
-                } else {
-                    new_rank = rank / 4
-                }
-
-                self.conn
-                    .execute("UPDATE ranks set rank=? where id=?", (new_rank, id))
-                    .await?;
-            }
-        }
-
-        if is_new_record {
             self.conn
                 .execute(
                     "insert into ranks (timestamp,session_id,rank,cmd) values (?,?,?,?)",
-                    (
-                        Local::now().to_rfc3339(),
-                        session_id,
-                        current_max_rank,
-                        new_cmd,
-                    ),
+                    (Local::now().to_rfc3339(), session_id, max_rank + 1, new_cmd),
                 )
                 .await?;
         }
 
         Ok(())
     }
+}
+
+pub fn calculate_rank(rank: i64, ts: DateTime<Local>) -> i64 {
+    let age_hours = (Local::now() - ts).num_hours();
+    let mut new_rank = rank;
+    if age_hours < 1 {
+        new_rank = rank.checked_mul(2).unwrap_or(i64::MAX)
+    } else if age_hours < 24 {
+        new_rank = rank;
+    } else if age_hours < 24 * 7 {
+        new_rank = rank.checked_div(2).unwrap_or(i64::MAX)
+    } else {
+        new_rank = rank.checked_div(4).unwrap_or(i64::MAX)
+    }
+
+    new_rank
 }
