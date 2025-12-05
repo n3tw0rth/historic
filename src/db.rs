@@ -130,13 +130,13 @@ pub fn calculate_rank(rank: i64, ts: DateTime<Local>) -> i64 {
     let age_hours = (Local::now() - ts).num_hours();
     let mut new_rank = rank;
     if age_hours < 1 {
-        new_rank = rank.checked_mul(2).unwrap_or(i64::MAX)
+        new_rank = rank.checked_mul(2).unwrap_or(i64::MAX).max(1)
     } else if age_hours < 24 {
         new_rank = rank;
     } else if age_hours < 24 * 7 {
-        new_rank = rank.checked_div(2).unwrap_or(i64::MAX)
+        new_rank = rank.checked_div(2).unwrap_or(i64::MAX).max(1)
     } else {
-        new_rank = rank.checked_div(4).unwrap_or(i64::MAX)
+        new_rank = rank.checked_div(4).unwrap_or(i64::MAX).max(1)
     }
 
     new_rank
