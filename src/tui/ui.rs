@@ -25,6 +25,7 @@ pub struct Tui {
     events: EventHandler,
     mode: Mode,
     search: Input,
+    list_state: ListState,
 }
 
 impl Tui {
@@ -92,6 +93,12 @@ impl Tui {
                     Mode::Normal => self.mode = Mode::Insert,
                     Mode::Insert => {}
                 },
+                KeyCode::Char('j') => {
+                    self.list_state.select_previous();
+                }
+                KeyCode::Char('k') => {
+                    self.list_state.select_next();
+                }
                 _ => {}
             }
         }
@@ -120,7 +127,7 @@ impl Widget for &Tui {
             .split(area);
 
         {
-            let mut state = ListState::default();
+            let mut state = self.list_state.clone();
             let results = if self.search.to_string().is_empty() {
                 self.cmds.clone()
             } else {
@@ -131,7 +138,6 @@ impl Widget for &Tui {
                 .block(Block::bordered().title("List"))
                 .style(Style::new().white())
                 .highlight_style(Style::new().italic())
-                .highlight_symbol(">>")
                 .repeat_highlight_symbol(true)
                 .direction(ListDirection::BottomToTop);
 
@@ -147,12 +153,17 @@ impl Widget for &Tui {
         }
 
         {
-            let seperator = " | ".gray();
             let lines = if self.mode.eq(&Mode::Normal) {
                 vec![
                     "Exit: ".blue(),
                     "q".into(),
-                    seperator,
+                    " | ".gray(),
+                    "Up: ".blue(),
+                    "k".into(),
+                    " | ".gray(),
+                    "Down: ".blue(),
+                    "j".into(),
+                    " | ".gray(),
                     "Search: ".blue(),
                     "i".into(),
                 ]
