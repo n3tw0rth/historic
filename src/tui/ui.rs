@@ -26,6 +26,7 @@ pub struct Tui {
     mode: Mode,
     search: Input,
     list_state: ListState,
+    selection: String,
 }
 
 impl Tui {
@@ -33,7 +34,7 @@ impl Tui {
         Tui::default()
     }
 
-    pub async fn run(&mut self, mut term: DefaultTerminal, cmds: Vec<String>) -> Result<()> {
+    pub async fn run(&mut self, mut term: DefaultTerminal, cmds: Vec<String>) -> Result<String> {
         self.cmds = cmds;
         while !self.exit {
             term.draw(|frame| self.render(frame))?;
@@ -46,7 +47,7 @@ impl Tui {
                 }
             }
         }
-        Ok(())
+        Ok(self.selection.clone())
     }
 
     #[instrument(fields(s=s),skip(self))]
@@ -98,6 +99,11 @@ impl Tui {
                 }
                 KeyCode::Char('k') => {
                     self.list_state.select_next();
+                }
+                KeyCode::Enter => {
+                    self.selection =
+                        self.filtered_cmds[self.list_state.selected().unwrap_or(0)].clone();
+                    self.exit();
                 }
                 _ => {}
             }
