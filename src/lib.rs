@@ -1,4 +1,3 @@
-use std::env;
 use std::sync::Arc;
 
 use self::db::Db;

@@ -101,8 +101,11 @@ impl Tui {
                     self.list_state.select_next();
                 }
                 KeyCode::Enter => {
-                    self.selection =
-                        self.filtered_cmds[self.list_state.selected().unwrap_or(0)].clone();
+                    self.selection = if self.search.to_string().is_empty() {
+                        self.cmds[self.list_state.selected().unwrap_or(0)].clone()
+                    } else {
+                        self.filtered_cmds[self.list_state.selected().unwrap_or(0)].clone()
+                    };
                     self.exit();
                 }
                 _ => {}
