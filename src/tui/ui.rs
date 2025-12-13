@@ -26,7 +26,7 @@ pub struct Tui {
     mode: Mode,
     search: Input,
     list_state: ListState,
-    selection: String,
+    selection: Option<String>,
 }
 
 impl Tui {
@@ -34,9 +34,13 @@ impl Tui {
         Tui::default()
     }
 
-    pub async fn run(&mut self, mut term: DefaultTerminal, cmds: Vec<String>) -> Result<String> {
+    pub async fn run(
+        &mut self,
+        mut term: DefaultTerminal,
+        cmds: Vec<String>,
+    ) -> Result<Option<String>> {
         self.cmds = cmds;
-        while !self.exit {
+        while !self.exit && !self.selection.is_some() {
             term.draw(|frame| self.render(frame))?;
 
             match self.events.next().await? {
@@ -101,11 +105,13 @@ impl Tui {
                     self.list_state.select_next();
                 }
                 KeyCode::Enter => {
+                    let selected_index = self.list_state.selected().unwrap_or(0);
                     self.selection = if self.search.to_string().is_empty() {
-                        self.cmds[self.list_state.selected().unwrap_or(0)].clone()
+                        self.cmds.get(selected_index).cloned()
                     } else {
-                        self.filtered_cmds[self.list_state.selected().unwrap_or(0)].clone()
+                        self.filtered_cmds.get(selected_index).cloned()
                     };
+
                     self.exit();
                 }
                 _ => {}
