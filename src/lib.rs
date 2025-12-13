@@ -30,7 +30,16 @@ pub async fn start_tui(term: Arc<Terminal>, db: Arc<Db>) -> Result<()> {
     let ratatui_term = ratatui::init();
     let result = tui.run(ratatui_term, items).await;
     ratatui::restore();
-    result?;
+
+    let selection = result?.unwrap_or_default();
+    prefill_buff(selection)?;
+
+    Ok(())
+}
+
+// NOTE: prefilling does not work properly due to how ratatui work with the terminal
+fn prefill_buff(selected: String) -> Result<()> {
+    println!("{}", selected);
 
     Ok(())
 }

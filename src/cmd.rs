@@ -5,7 +5,7 @@ use crate::error::Result;
 use crate::terminal::Terminal;
 use crate::utils;
 use clap::{Parser, Subcommand};
-use tracing::{info, instrument};
+use tracing::instrument;
 
 #[derive(Debug, Parser)]
 #[command(about = "A CLI to remember commands you run")]
