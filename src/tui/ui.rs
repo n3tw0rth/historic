@@ -1,4 +1,4 @@
-use std::io::Stderr;
+use std::fs::File;
 
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{Terminal as RatTerminal, prelude::*};
@@ -38,7 +38,7 @@ impl Tui {
 
     pub async fn run(
         &mut self,
-        mut term: RatTerminal<CrosstermBackend<Stderr>>,
+        term: &mut RatTerminal<CrosstermBackend<File>>,
         cmds: Vec<String>,
     ) -> Result<Option<String>> {
         self.cmds = cmds;

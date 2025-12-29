@@ -1,8 +1,9 @@
-use std::io;
 use std::sync::Arc;
 
 use ratatui::crossterm::execute;
-use ratatui::crossterm::terminal::{EnterAlternateScreen, enable_raw_mode};
+use ratatui::crossterm::terminal::{
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
+};
 use ratatui::prelude::{CrosstermBackend, Terminal as RatTerminal};
 
 use self::db::Db;
@@ -34,13 +35,16 @@ pub async fn start_tui(term: Arc<Terminal>, db: Arc<Db>) -> Result<()> {
     color_eyre::install().map_err(|e| Error::Unknown { msg: e.to_string() })?;
 
     enable_raw_mode()?;
-    let mut stderr = io::stderr();
-    execute!(stderr, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stderr);
-    let rat_terminal = RatTerminal::new(backend)?;
 
-    let result = tui.run(rat_terminal, items).await;
-    ratatui::restore();
+    let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty")?;
+    let backend = CrosstermBackend::new(tty);
+    let mut rat_terminal = RatTerminal::new(backend)?;
+    execute!(rat_terminal.backend_mut(), EnterAlternateScreen)?;
+
+    let result = tui.run(&mut rat_terminal, items).await;
+
+    execute!(rat_terminal.backend_mut(), LeaveAlternateScreen)?;
+    disable_raw_mode()?;
 
     let selection = result?.unwrap_or_default();
     prefill_buff(selection)?;
