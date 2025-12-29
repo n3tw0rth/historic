@@ -11,25 +11,18 @@ A CLI tool for remembering and quickly accessing terminal commands across differ
 
 ## Installation
 
-update `.bashrc`
-```bash
-function __historic_hook() {
-    old_cmd="$(history 1 | sed 's/^[ ]*[0-9]\+[ ]*//')"
-    if [[ -n "$old_cmd" && "$old_cmd" != *historic* ]]; then
-      \command historic add "${old_cmd}"
-    fi
-}
+Please install from the source for now
 
-# Initialize hook.
-if [[ ${PROMPT_COMMAND:=} != *'__historic_hook'* ]]; then
-    PROMPT_COMMAND="__historic_hook;${PROMPT_COMMAND#;}"
-fi
-```
 
 ## Usage
 
 ```bash
-# not yet ready to be used
+__historic__() {
+  export SELECTED="$(historic | tee /dev/tty | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')"
+  READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}$SELECTED${READLINE_LINE:$READLINE_POINT}"
+  READLINE_POINT=$(( READLINE_POINT + ${#SELECTED} ))
+}
+bind -x '"\C-t":"__historic__"'
 ```
 
 ## Features

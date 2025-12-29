@@ -1,5 +1,7 @@
+use std::io::Stderr;
+
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{DefaultTerminal, prelude::*};
+use ratatui::{Terminal as RatTerminal, prelude::*};
 use ratatui::{
     style::{Style, Stylize},
     text::Line,
@@ -36,7 +38,7 @@ impl Tui {
 
     pub async fn run(
         &mut self,
-        mut term: DefaultTerminal,
+        mut term: RatTerminal<CrosstermBackend<Stderr>>,
         cmds: Vec<String>,
     ) -> Result<Option<String>> {
         self.cmds = cmds;
