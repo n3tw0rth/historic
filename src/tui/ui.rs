@@ -12,6 +12,9 @@ use tracing::{debug, instrument};
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
 
+/// TUI contains to modes
+/// Insert - Focus on the search to find the right command
+/// Normal - Focus on the stateful list to select the right command
 #[derive(Default, Debug, PartialEq)]
 pub enum Mode {
     #[default]
@@ -19,6 +22,7 @@ pub enum Mode {
     Normal,
 }
 
+/// TUI component of the application
 #[derive(Default, Debug)]
 pub struct Tui {
     cmds: Vec<String>,
@@ -200,5 +204,18 @@ impl Widget for &Tui {
 impl Drop for Tui {
     fn drop(&mut self) {
         self.exit();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initialization() {
+        let tui = Tui::new();
+        assert!(!tui.exit, "TUI should not start in exit state");
+
+        assert!(tui.selection.is_none())
     }
 }
