@@ -18,7 +18,7 @@ Please install from the source for now
 
 ```bash
 __historic__() {
-  export SELECTED="$(historic | tee /dev/tty | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')"
+  export SELECTED="$(historic | sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g')"
   READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}$SELECTED${READLINE_LINE:$READLINE_POINT}"
   READLINE_POINT=$(( READLINE_POINT + ${#SELECTED} ))
 }
