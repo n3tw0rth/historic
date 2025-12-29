@@ -12,6 +12,9 @@ use tracing::{debug, instrument};
 
 use crate::{Event, EventHandler, Result, tui::input::Input};
 
+/// TUI contains to modes
+/// Insert - Focus on the search to find the right command
+/// Normal - Focus on the stateful list to select the right command
 #[derive(Default, Debug, PartialEq)]
 pub enum Mode {
     #[default]
