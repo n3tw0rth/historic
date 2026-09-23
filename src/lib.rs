@@ -24,13 +24,7 @@ pub async fn start_tui(term: Arc<Terminal>, db: Arc<Db>) -> Result<()> {
     let mut tui = Tui::new();
 
     let session_id = utils::string_to_md5(&format!("{:?} ", term));
-    let mut rows = db.get_commands(&session_id).await?;
-
-    let mut items = Vec::new();
-    while let Some(row) = rows.next().await? {
-        let r: String = row.get(4)?;
-        items.push(r);
-    }
+    let items = db.get_commands(&session_id).await?;
 
     color_eyre::install().map_err(|e| Error::Unknown { msg: e.to_string() })?;
 
