@@ -7,7 +7,7 @@ use crate::error::Error;
 pub struct Tracing {}
 
 impl Tracing {
-    pub fn new() -> Result<()> {
+    pub fn init() -> Result<()> {
         let file_path = dirs::config_dir()
             .map(|mut path| {
                 path.push(env!("CARGO_PKG_NAME")); // append the package name
@@ -16,10 +16,10 @@ impl Tracing {
             })
             .unwrap();
 
-        if let Some(parent) = file_path.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
+        if let Some(parent) = file_path.parent()
+            && !parent.exists()
+        {
+            fs::create_dir_all(parent)?;
         }
 
         let file_layer = tracing_subscriber::fmt::layer().compact().with_writer(

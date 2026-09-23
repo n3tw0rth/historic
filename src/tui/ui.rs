@@ -46,7 +46,7 @@ impl Tui {
         cmds: Vec<String>,
     ) -> Result<Option<String>> {
         self.cmds = cmds;
-        while !self.exit && !self.selection.is_some() {
+        while !self.exit && self.selection.is_none() {
             term.draw(|frame| self.render(frame))?;
 
             match self.events.next().await? {
@@ -63,7 +63,7 @@ impl Tui {
     #[instrument(fields(s=s),skip(self))]
     fn handle_search(&mut self, s: String) -> Result<()> {
         debug!("searching");
-        if s.len() > 0 {
+        if !s.is_empty() {
             let threshold: f32 = 0.1f32;
             let res = fuzzy_search_threshold(
                 &s,

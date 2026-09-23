@@ -11,7 +11,24 @@ A CLI tool for remembering and quickly accessing terminal commands across differ
 
 ## Installation
 
-Please install from the source for now
+### Prebuilt binaries
+
+Download the archive for your platform from the
+[Releases](https://github.com/n3tw0rth/historic/releases) page. Builds are
+available for Linux (x86_64, aarch64) and macOS (Intel, Apple Silicon).
+
+```bash
+tar -xzf historic-<version>-<target>.tar.gz
+sudo mv historic /usr/local/bin/
+```
+
+Each archive ships with a `.sha256` checksum file.
+
+### From source
+
+```bash
+just install
+```
 
 
 ## Usage
