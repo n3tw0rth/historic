@@ -6,7 +6,7 @@ pub enum Error {
     Io(#[from] std::io::Error),
 
     #[error("Db error: {0}")]
-    Db(#[from] turso::Error),
+    Db(#[from] sqlx::Error),
 
     #[error("{msg:?}")]
     Unknown { msg: String },
