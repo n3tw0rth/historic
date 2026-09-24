@@ -14,9 +14,9 @@ impl Input {
     }
 }
 
-impl ToString for Input {
-    fn to_string(&self) -> String {
-        self.val.to_string()
+impl std::fmt::Display for Input {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.val)
     }
 }
 

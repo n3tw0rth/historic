@@ -107,12 +107,10 @@ impl Db {
 
     /// Return the commands stored for a session ordered by ascending rank.
     pub async fn get_commands(&self, session_id: &str) -> Result<Vec<String>> {
-        let rows = sqlx::query(
-            "SELECT cmd FROM ranks WHERE session_id = ? ORDER BY rank ASC",
-        )
-        .bind(session_id)
-        .fetch_all(&self.pool)
-        .await?;
+        let rows = sqlx::query("SELECT cmd FROM ranks WHERE session_id = ? ORDER BY rank ASC")
+            .bind(session_id)
+            .fetch_all(&self.pool)
+            .await?;
 
         let commands = rows
             .into_iter()
@@ -123,13 +121,12 @@ impl Db {
     }
 
     pub async fn rank_n_save_new(&self, session_id: String, new_cmd: String) -> Result<()> {
-        let maybe_row = sqlx::query(
-            "select id, timestamp, rank from ranks where session_id=? and cmd=?",
-        )
-        .bind(&session_id)
-        .bind(&new_cmd)
-        .fetch_optional(&self.pool)
-        .await?;
+        let maybe_row =
+            sqlx::query("select id, timestamp, rank from ranks where session_id=? and cmd=?")
+                .bind(&session_id)
+                .bind(&new_cmd)
+                .fetch_optional(&self.pool)
+                .await?;
 
         if let Some(row) = maybe_row {
             let id: i64 = row.get("id");

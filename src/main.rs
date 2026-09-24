@@ -12,7 +12,7 @@ use historic::{
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
-    Tracing::new()?;
+    Tracing::init()?;
     info!("application started");
 
     let args = Args::parse();
