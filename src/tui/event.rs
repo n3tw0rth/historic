@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
+use ratatui::crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread::{self, JoinHandle};
@@ -11,7 +11,8 @@ pub enum Event {
     Init,
     Quit,
     Key(KeyEvent),
-    Search(String),
+    /// The terminal was resized and needs a redraw.
+    Resize,
 }
 
 #[allow(dead_code)]
@@ -34,11 +35,16 @@ impl EventHandler {
             thread::spawn(move || {
                 while running.load(Ordering::Relaxed) {
                     if event::poll(Duration::from_millis(250)).expect("no events available") {
-                        match event::read().expect("unable to read events") {
-                            CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
-                            _ => unimplemented!(),
+                        let event = match event::read().expect("unable to read events") {
+                            CrosstermEvent::Key(e) if e.kind == KeyEventKind::Press => {
+                                Event::Key(e)
+                            }
+                            CrosstermEvent::Resize(..) => Event::Resize,
+                            _ => continue,
+                        };
+                        if sender.send(event).is_err() {
+                            break;
                         }
-                        .expect("failed to send a event to terminal")
                     }
                 }
             })
@@ -62,5 +68,11 @@ impl EventHandler {
 impl Default for EventHandler {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Drop for EventHandler {
+    fn drop(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
     }
 }

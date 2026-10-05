@@ -23,8 +23,7 @@ pub mod utils;
 pub async fn start_tui(term: Arc<Terminal>, db: Arc<Db>) -> Result<()> {
     let mut tui = Tui::new();
 
-    let session_id = utils::string_to_md5(&format!("{:?} ", term));
-    let items = db.get_commands(&session_id).await?;
+    let items = db.get_commands(&term.session_id()).await?;
 
     color_eyre::install().map_err(|e| Error::Unknown { msg: e.to_string() })?;
 

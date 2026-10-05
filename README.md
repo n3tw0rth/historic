@@ -60,19 +60,37 @@ bind -x '"\C-t":"__historic__"'
 Save every command automatically after it runs:
 
 ```bash
-__historic_add__() { historic add "$(history 1 | sed 's/^ *[0-9]* *//')"; }
+__historic_add__() {
+  local entry
+  entry="$(HISTTIMEFORMAT= builtin history 1)"
+  # Skip the shell's first prompt, and any prompt where history didn't change
+  # (an empty line, Ctrl+C or a space-prefixed command).
+  if [[ ${__historic_last__+set} && $entry != "$__historic_last__" ]]; then
+    historic add -- "$(sed '1s/^ *[0-9]*[* ] //' <<<"$entry")"
+  fi
+  __historic_last__=$entry
+}
 PROMPT_COMMAND="__historic_add__${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 ```
 
+Put both snippets at the **end** of `~/.bashrc`, so nothing that runs later replaces `PROMPT_COMMAND`. Then open a new shell. Panes and terminals that were already open won't have the hook until you run `source ~/.bashrc` in them.
+
+Inside tmux, each pane has its own list. The picker shows every command saved from that pane, whichever directory you ran it in. Outside tmux, every terminal shares one list. The hook saves what bash adds to its history. With `HISTCONTROL=ignorespace` or `ignoreboth` (the Ubuntu default), commands that start with a space aren't saved.
+
 ### Keys
+
+The picker opens ready to search: just type, then press <kbd>Enter</kbd>. Space-separated words can match in any order, and the search is case-sensitive only if you type an uppercase letter.
 
 | Key | Action |
 | --- | --- |
-| <kbd>i</kbd> | Start searching |
-| <kbd>Esc</kbd> | Stop searching |
-| <kbd>j</kbd> / <kbd>k</kbd> | Move selection |
 | <kbd>Enter</kbd> | Pick command |
-| <kbd>q</kbd> | Quit |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Ctrl</kbd>+<kbd>P</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd> | Move selection |
+| <kbd>Ctrl</kbd>+<kbd>U</kbd> / <kbd>Ctrl</kbd>+<kbd>W</kbd> | Clear search / delete last word |
+| <kbd>Esc</kbd> | Stop searching and browse |
+| <kbd>j</kbd> / <kbd>k</kbd> | Move selection (browsing) |
+| <kbd>i</kbd> or <kbd>/</kbd> | Start searching again (browsing) |
+| <kbd>q</kbd> or <kbd>Esc</kbd> | Quit (browsing) |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> | Quit |
 
 ## Data
 

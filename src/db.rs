@@ -105,9 +105,9 @@ impl Db {
         Ok(Self { pool })
     }
 
-    /// Return the commands stored for a session ordered by ascending rank.
+    /// Return the commands stored for a session, most relevant (highest rank) first.
     pub async fn get_commands(&self, session_id: &str) -> Result<Vec<String>> {
-        let rows = sqlx::query("SELECT cmd FROM ranks WHERE session_id = ? ORDER BY rank ASC")
+        let rows = sqlx::query("SELECT cmd FROM ranks WHERE session_id = ? ORDER BY rank DESC")
             .bind(session_id)
             .fetch_all(&self.pool)
             .await?;

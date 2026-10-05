@@ -3,10 +3,11 @@ use std::{env, process::Command};
 use strum_macros::Display;
 
 use crate::error::Result;
+use crate::utils;
 
 /// Enum representing different types of terminal multiplexers
 
-#[derive(Display, Default, Debug)]
+#[derive(Display, Default, Debug, Clone)]
 pub enum TerminalMultiplexerType {
     #[strum(serialize = "tmux")]
     TMUX,
@@ -17,7 +18,7 @@ pub enum TerminalMultiplexerType {
     NONE,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Terminal {
     pub multiplexer: TerminalMultiplexerType,
     pub session: String,
@@ -58,7 +59,58 @@ impl Terminal {
             Ok(Terminal::default())
         }
     }
+
+    /// Key that commands are saved under: one list per tmux pane, or a single
+    /// shared list outside a multiplexer. The working directory is left out so
+    /// a pane keeps the same list wherever you `cd`.
+    pub fn session_id(&self) -> String {
+        // Hashing the Debug output keeps the ids saved by earlier versions
+        // valid outside tmux, where `pwd` was always empty.
+        let key = Terminal {
+            pwd: PathBuf::new(),
+            ..self.clone()
+        };
+        utils::string_to_md5(&format!("{key:?}"))
+    }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+
+    fn tmux_pane(pane: u8, pwd: &str) -> Terminal {
+        Terminal {
+            multiplexer: TerminalMultiplexerType::TMUX,
+            session: "main".to_string(),
+            window: 1,
+            pane,
+            pwd: PathBuf::from(pwd),
+        }
+    }
+
+    #[test]
+    fn test_session_id_ignores_working_directory() {
+        assert_eq!(
+            tmux_pane(0, "/home/me").session_id(),
+            tmux_pane(0, "/home/me/projects").session_id()
+        );
+    }
+
+    #[test]
+    fn test_session_id_differs_per_pane() {
+        assert_ne!(
+            tmux_pane(0, "/home/me").session_id(),
+            tmux_pane(1, "/home/me").session_id()
+        );
+    }
+
+    #[test]
+    fn test_session_id_outside_tmux_is_unchanged() {
+        // Earlier versions saved commands under this id; changing it would
+        // hide them.
+        assert_eq!(
+            Terminal::default().session_id(),
+            "c1eb7cb0f78910aece76c7629f5e17cd"
+        );
+    }
+}

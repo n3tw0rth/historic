@@ -9,8 +9,32 @@ impl Input {
         self.val.push_str(&char);
     }
 
+    /// Remove the last character.
     pub fn delete(&mut self) {
-        self.val.truncate(self.val.len().saturating_sub(1));
+        self.val.pop();
+    }
+
+    /// Remove the last word along with any whitespace after it.
+    pub fn delete_word(&mut self) {
+        let trimmed = self.val.trim_end();
+        let start = trimmed
+            .char_indices()
+            .rev()
+            .find(|(_, c)| c.is_whitespace())
+            .map_or(0, |(i, c)| i + c.len_utf8());
+        self.val.truncate(start);
+    }
+
+    pub fn clear(&mut self) {
+        self.val.clear();
+    }
+
+    pub fn value(&self) -> &str {
+        &self.val
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.val.is_empty()
     }
 }
 
@@ -46,5 +70,34 @@ mod tests {
         input.put(String::from("b"));
         input.delete();
         assert_eq!(input.to_string(), "a");
+    }
+
+    #[test]
+    fn test_delete_multibyte() {
+        let mut input = Input::default();
+        input.put(String::from("caf"));
+        input.put(String::from("é"));
+        input.delete();
+        assert_eq!(input.to_string(), "caf");
+    }
+
+    #[test]
+    fn test_delete_word() {
+        let mut input = Input::default();
+        input.put(String::from("git commit  "));
+        input.delete_word();
+        assert_eq!(input.to_string(), "git ");
+        input.delete_word();
+        assert_eq!(input.to_string(), "");
+        input.delete_word();
+        assert_eq!(input.to_string(), "");
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut input = Input::default();
+        input.put(String::from("abc"));
+        input.clear();
+        assert!(input.is_empty());
     }
 }
